@@ -1,14 +1,20 @@
-'use strict'
-
-const reHex3 = /^#([0-9a-f]{3})$/
-const reHex6 = /^#([0-9a-f]{6})$/
-const reRgbInteger = /^rgb\(\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*\)$/
-const reRgbPercent = /^rgb\(\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*\)$/
-const reRgbaInteger = /^rgba\(\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*([-+]?\d+(?:\.\d+)?)\s*\)$/
-const reRgbaPercent = /^rgba\(\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)\s*\)$/
-const reHslPercent = /^hsl\(\s*([-+]?\d+(?:\.\d+)?)\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*\)$/
-const reHslaPercent = /^hsla\(\s*([-+]?\d+(?:\.\d+)?)\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)\s*\)$/
-
+/**
+ * 处理色值的正则
+ */
+/* eslint-disable max-len, comma-spacing, indent*/
+const reHex3 = /^#([0-9a-f]{3})$/;
+const reHex6 = /^#([0-9a-f]{6})$/;
+const reRgbInteger = /^rgb\(\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*\)$/;
+const reRgbPercent = /^rgb\(\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*\)$/;
+const reRgbaInteger = /^rgba\(\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*([-+]?\d+(?:\.\d+)?)\s*\)$/;
+const reRgbaPercent = /^rgba\(\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)\s*\)$/;
+const reHslPercent = /^hsl\(\s*([-+]?\d+(?:\.\d+)?)\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*\)$/;
+const reHslaPercent = /^hsla\(\s*([-+]?\d+(?:\.\d+)?)\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)%\s*,\s*([-+]?\d+(?:\.\d+)?)\s*\)$/;
+/* eslint-enable */
+/**
+ * 对应名称的色值
+ * @type {Object}
+ */
 const named = {
   aliceblue: 0xf0f8ff,
   antiquewhite: 0xfaebd7,
@@ -158,115 +164,175 @@ const named = {
   whitesmoke: 0xf5f5f5,
   yellow: 0xffff00,
   yellowgreen: 0x9acd32
-}
+};
 
 class Color {
-  constructor () {
-    this.f = {}
-  }
-  format (str) {
-    let m
-    str = (str + '').trim().toLowerCase()
-    if (reHex3.exec(str)) {
-      m = parseInt(reHex3.exec(str)[1], 16)
-      this.f = new Rgb((m >> 8 & 0xf) | (m >> 4 & 0x0f0), (m >> 4 & 0xf) | (m & 0xf0), ((m & 0xf) << 4) | (m & 0xf), 1)
-    } else if (reHex6.exec(str)) {
-      m = parseInt(reHex6.exec(str)[1], 16)
-      this.f = this.rgbn(m)
-    } else if (reRgbInteger.exec(str)) {
-      m = reRgbInteger.exec(str)
-      this.f = new Rgb(m[1], m[2], m[3], 1)
-    } else if (reRgbPercent.exec(str)) {
-      m = reRgbPercent.exec(str)
-      const r = 255 / 100
-      this.f = new Rgb(m[1] * r, m[2] * r, m[3] * r, 1)
-    } else if (reRgbaInteger.exec(str)) {
-      m = reRgbaInteger.exec(str)
-      this.f = this.rgba(m[1], m[2], m[3], m[4])
-    } else if (reRgbaPercent.exec(str)) {
-      m = reRgbaPercent.exec(str)
-      const r = 255 / 100
-      this.f = this.rgba(m[1] * r, m[2] * r, m[3] * r, m[4])
-    } else if (reHslPercent.exec(str)) {
-      m = reHslPercent.exec(str)
-      this.f = this.hsla(m[1], m[2] / 100, m[3] / 100, 1)
-    } else if (reHslaPercent.exec(str)) {
-      m = reHslaPercent.exec(str)
-      this.f = this.hsla(m[1], m[2] / 100, m[3] / 100, m[4])
-    } else if (named.hasOwnProperty(str)) {
-      this.f = this.rgbn(named[str])
-    } else if (str === 'transparent') {
-      this.f = new Rgb(NaN, NaN, NaN, 0)
+  /**
+   * 将色值字符串转换成{r, g, b, opacity}格式
+   * @param  {[String]} colorValue [#112233]
+   * @return {[Object]}            [Rgb {r: 0, g: 0, b: 0, opacity: 1}]
+   */
+  format(colorValue) {
+    let temp;
+    let result;
+    //  先将色值去除空格且统一小写
+    const colorString = (`${colorValue}`).trim().toLowerCase();
+    if (!!reHex3.exec(colorString)) {
+      //  如果色值是三位: #123
+      temp = parseInt(reHex3.exec(colorString)[1], 16);
+      result = new Rgb((temp >> 8 & 0xf) |
+        (temp >> 4 & 0x0f0), (temp >> 4 & 0xf) |
+        (temp & 0xf0), ((temp & 0xf) << 4) |
+        (temp & 0xf), 1);
+    } else if (!!reHex6.exec(colorString)) {
+      //  如果色值是六位位: #112233
+      temp = parseInt(reHex6.exec(colorString)[1], 16);
+      result = this.rgbn(temp);
+    } else if (!!reRgbInteger.exec(colorString)) {
+      temp = reRgbInteger.exec(colorString);
+      result = new Rgb(temp[1], temp[2], temp[3], 1);
+    } else if (reRgbPercent.exec(colorString)) {
+      temp = reRgbPercent.exec(colorString);
+      const r = 255 / 100;
+      result = new Rgb(temp[1] * r, temp[2] * r, temp[3] * r, 1);
+    } else if (reRgbaInteger.exec(colorString)) {
+      temp = reRgbaInteger.exec(colorString);
+      result = this.rgba(temp[1], temp[2], temp[3], temp[4]);
+    } else if (reRgbaPercent.exec(colorString)) {
+      temp = reRgbaPercent.exec(colorString);
+      const r = 255 / 100;
+      result = this.rgba(temp[1] * r, temp[2] * r, temp[3] * r, temp[4]);
+    } else if (reHslPercent.exec(colorString)) {
+      temp = reHslPercent.exec(colorString);
+      result = this.hsla(temp[1], temp[2] / 100, temp[3] / 100, 1);
+    } else if (reHslaPercent.exec(colorString)) {
+      temp = reHslaPercent.exec(colorString);
+      result = this.hsla(temp[1], temp[2] / 100, temp[3] / 100, temp[4]);
+    } else if (named.hasOwnProperty(colorString)) {
+      result = this.rgbn(named[colorString]);
+    } else if (colorString === 'transparent') {
+      result = new Rgb(NaN, NaN, NaN, 0);
     } else {
-      this.f = null
-      throw new Error('Invalid color format.')
+      result = undefined;
+      throw new Error('Invalid color format.');
     }
-    return this.f
+    return result;
   }
-  rgbn (n) {
-    return new Rgb(n >> 16 & 0xff, n >> 8 & 0xff, n & 0xff, 1)
+  /**
+   * 将 16进制的色值号码转换成 Rgb 类型的 色值
+   * @param  {[type]} n [description]
+   * @return {[type]}   [description]
+   */
+  rgbn(colorNumber) {
+    return new Rgb(colorNumber >> 16 & 0xff, colorNumber >> 8 & 0xff, colorNumber & 0xff, 1);
   }
-  rgba (r, g, b, a) {
-    if (a <= 0) r = g = b = NaN
-    return new Rgb(r, g, b, a)
-  }
-  hsla (h, s, l, a) {
-    if (a <= 0) {
-      h = s = l = NaN
-    } else if (l <= 0 || l >= 1) {
-      h = s = NaN
-    } else if (s <= 0) {
-      h = NaN
+  rgba(r, g, b, opacity) {
+    if (parseFloat(opacity, 10) <= 0) {
+      return new Rgb(NaN, NaN, NaN, opacity);
     }
-    return new Hsl(h, s, l, a).rgb()
+    return new Rgb(r, g, b, opacity);
+  }
+  hsla(r, g, b, opacity) {
+    let result;
+    if (parseFloat(opacity, 10) <= 0) {
+      result = new Hsl(NaN, NaN, NaN, opacity).rgb();
+    } else if (b <= 0 || b >= 1) {
+      result = new Hsl(NaN, NaN, b, opacity).rgb();
+    } else if (g <= 0) {
+      result = new Hsl(NaN, g, b, opacity).rgb();
+    } else {
+      result = new Hsl(r, g, b, opacity).rgb();
+    }
+    return result;
   }
 }
 
 class Rgb {
-  constructor (r, g, b, opacity) {
-    this.r = +r
-    this.g = +g
-    this.b = +b
-    this.opacity = +opacity
+  constructor(r, g, b, opacity) {
+    this.r = +r;
+    this.g = +g;
+    this.b = +b;
+    this.opacity = +opacity;
   }
-  brighter (k) {
-    k = k == null ? 0 : k
-    return new Rgb(this.r + (255 - this.r) * k, this.g + (255 - this.g) * k, this.b + (255 - this.b) * k, this.opacity)
+  /**
+   * 更加明亮的色值计算
+   */
+  brighter(value = 0) {
+    return new Rgb(
+      this.r + (255 - this.r) * value,
+      this.g + (255 - this.g) * value,
+      this.b + (255 - this.b) * value,
+      this.opacity
+    );
   }
-  darker (k) {
-    k = k == null ? 0 : k
-    return new Rgb(this.r - (this.r - 0) * k, this.g - (this.g - 0) * k, this.b - (this.b - 0) * k, this.opacity)
+  /**
+   * 更加暗的色值计算
+   * @param  {[type]} k [description]
+   * @return {[type]}   [description]
+   */
+  darker(value = 0) {
+    return new Rgb(this.r - (
+      this.r - 0) * value,
+      this.g - (this.g - 0) * value,
+      this.b - (this.b - 0) * value,
+      this.opacity
+    );
   }
-  toString () {
-    let a = this.opacity
-    a = isNaN(a) ? 1 : Math.max(0, Math.min(a, 1))
-    return a === 1 ? `rgb(${this.check(this.r)},${this.check(this.g)},${this.check(this.b)})` : `rgba(${this.check(this.r)},${this.check(this.g)},${this.check(this.b)},${a})`
+  /**
+   * 将初始化的色值转换回 String
+   * @return {[type]} [description]
+   */
+  toString() {
+    const value = isNaN(this.opacity) ? 1 : Math.max(0, Math.min(this.opacity, 1));
+    return value === 1 ?
+      `rgb(${this.check(this.r)},${this.check(this.g)},${this.check(this.b)})` :
+      `rgba(${this.check(this.r)},${this.check(this.g)},${this.check(this.b)},${value})`;
   }
-  check (val) {
-    return Math.max(0, Math.min(255, Math.round(val) || 0))
+  /**
+   * 检测
+   * @param  {[type]} val [description]
+   * @return {[type]}     [description]
+   */
+  check(val) {
+    return Math.max(0, Math.min(255, Math.round(val) || 0));
   }
 }
 
 class Hsl {
-  constructor (h, s, l, opacity) {
-    this.h = +h
-    this.s = +s
-    this.l = +l
-    this.opacity = +opacity
+  constructor(r, g, b, opacity) {
+    this.r = +r;
+    this.g = +g;
+    this.b = +b;
+    this.opacity = +opacity;
   }
-  rgb () {
-    const h = this.h % 360 + (this.h < 0) * 360
-    const s = isNaN(h) || isNaN(this.s) ? 0 : this.s
-    const l = this.l
-    const m2 = l + (l < 0.5 ? l : 1 - l) * s
-    const m1 = 2 * l - m2
-    return new Rgb(this.hsl2rgb(h >= 240 ? h - 240 : h + 120, m1, m2), this.hsl2rgb(h, m1, m2), this.hsl2rgb(h < 120 ? h + 240 : h - 120, m1, m2), this.opacity)
+  rgb() {
+    const r = this.r % 360 + (this.r < 0) * 360;
+    const g = isNaN(r) || isNaN(this.g) ? 0 : this.g;
+    const b = this.b;
+    const m2 = b + (b < 0.5 ? b : 1 - b) * g;
+    const m1 = 2 * b - m2;
+    return new Rgb(
+      this.hsl2rgb(r >= 240 ? r - 240 : r + 120, m1, m2),
+      this.hsl2rgb(r, m1, m2),
+      this.hsl2rgb(r < 120 ? r + 240 : r - 120, m1, m2),
+      this.opacity
+    );
   }
-  hsl2rgb (h, m1, m2) {
-    return (h < 60 ? m1 + (m2 - m1) * h / 60 : h < 180 ? m2 : h < 240 ? m1 + (m2 - m1) * (240 - h) / 60 : m1) * 255
+  hsl2rgb(h, m1, m2) {
+    let num;
+    if (h < 60) {
+      num = m1 + (m2 - m1) * h / 60;
+    } else if (h < 180) {
+      num = m2;
+    } else if (h < 240) {
+      num = m1 + (m2 - m1) * (240 - h) / 60;
+    } else {
+      num = m1;
+    }
+    return num * 255;
   }
 }
 
-const color = () => new Color()
-
-export default color
+module.exports = () => {
+  return new Color();
+};
